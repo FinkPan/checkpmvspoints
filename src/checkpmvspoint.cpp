@@ -140,7 +140,7 @@ void ReadOption_Patch(const std::string &filepath,
                 ic.x = pc.x       = imageXYcoord(0,0);
                 ic.y = pc.y       = imageXYcoord(1,0);
 
-                image_points_coord.insert(std::make_pair(good_image_index,ic));
+                //image_points_coord.insert(std::make_pair(good_image_index,ic));
                 point_images_coord.insert(std::make_pair(point_index,pc));
             }
             inputfile.ignore(1024,'\n'); //忽略good_image_index行剩余字符直到回车.
@@ -186,26 +186,26 @@ void SavePointOrderCoord( const std::string savefilepath,
 
 
 void SaveImageOrederCoord( const std::string savefilepath,
-                           const std::multimap<imageID,imageorder_coord> &image_points_coord)
+                           const std::multimap<imageID,imageorder_coord> &image_points_coord,
+                           const int imagename)
 {
     std::string str_point_index,filename;
-    int count_image_index = 0;
+    int cntpoint = 0;
 
     std::stringstream ss;
     
-    std::multimap<imageID,imageorder_coord>::const_iterator iter = image_points_coord.begin();
-    for (iter; iter != image_points_coord.end();)
+    std::multimap<imageID,imageorder_coord>::const_iterator iter = image_points_coord.find(imagename);
+    if (iter != image_points_coord.end())
     {
         ss.clear();
-        count_image_index =  image_points_coord.count(iter->first); //每个点有多少张图片;
-        ss << iter->first;
+        cntpoint =  image_points_coord.count(iter->first); //每个点有多少张图片;
+        ss << imagename;
         ss >> str_point_index;
-        filename = savefilepath + str_point_index + ".txt";
+        filename = savefilepath + "image" + str_point_index + ".txt";
         std::ofstream outfile(filename);
         if (outfile)
         {
-            outfile << "I" << iter->first << "\n"; //写入点名
-            for (int i = 0; i != count_image_index; ++i) //写入图片名,点在该图像素坐标x,点在该图像素坐标y,
+            for (int i = 0; i != cntpoint; ++i) //写入图片名,点在该图像素坐标x,点在该图像素坐标y,
             {
                 outfile.unsetf(std::ios::floatfield);
                 outfile.precision(14);
@@ -214,13 +214,14 @@ void SaveImageOrederCoord( const std::string savefilepath,
                     << iter->second.y       << "\n";
                 ++iter; //递增iterator
             }
+
         }
         else
-            std::cout << "保存文件失败!" << std::endl;
+            std::cout << "无法打开: "<< filename << std::endl;
         outfile.close();
-    }
-        
-    
+    }//if (iter != image_points_coord.end())  
+    else
+        std::cout << "无法找到图片:" << imagename << "P矩阵信息!\n";
 }
 
 void GetCameraParameter(int CameraID,const std::map<int,MatrixXd> &P)
@@ -265,6 +266,99 @@ void GetPointImageCoord(const int pointname,
 		std::cout << "没有该点信息.\n";
 }
 
+void CutOutPointImage( const std::string image_in_path,
+                       const std::string image_out_path,
+                       const std::multimap<pointID,pointorder_coord> &point_images_coord,
+                       const int pointname)
+{
+    CImage Img,OutImage;
+    CString CFileName,COutImage;
+    //const pointID pid;
+    int image_width;
+    int image_heigth;
+    int pixelx, pixely;
+    int cntpoint = 0;
+    int image_index = 0;
+    std::string filename,outjpgfilename,str_image_index,str_point_index;
+    std::string str_file_index;
+    str_file_index.resize(8);  //pmvs文件规定为8为宽度
+    COLORREF color = RGB(255,0,0);
+    std::multimap<pointID,pointorder_coord>::const_iterator iter = point_images_coord.find(pointname);
+    if (iter != point_images_coord.end())
+    {
+        cntpoint = point_images_coord.count(iter->first);
+        for (int i = 0; i != cntpoint; ++i)
+        {
+            //处理输入图片路径名称
+            image_index = iter->second.imageID;
+            sprintf(&str_file_index[0], "%08d",image_index); //格式化文件名
+            filename =  image_in_path + str_file_index + ".jpg";
+
+            //处理输出图片路径名称
+            std::stringstream ss;
+            ss << pointname;
+            ss >> str_point_index;
+            outjpgfilename = image_out_path + "pointcheck\\" + str_point_index + "_" + str_file_index + "_out.bmp";
+            COutImage = (LPCTSTR)(outjpgfilename).c_str();
+
+            CFileName = (LPCTSTR)(filename).c_str();
+            Img.Load(CFileName);
+            if (Img.IsNull())
+            {
+                std::cout << "无法打开图片: " << filename << std::endl;
+                //exit(-1);
+            }
+
+            image_width = Img.GetWidth();
+            image_heigth = Img.GetHeight();
+            OutImage.Create(500,500,24);
+            pixelx = static_cast<int>(iter->second.x);
+            pixely = static_cast<int>(iter->second.y);
+
+            //复制500x500到新图片
+            for (int xo = 0; xo != 500; ++xo)
+            {
+                for (int yo = 0; yo != 500; ++yo)
+                {
+                    if (pixelx - 250 + xo < 0 ||
+                        pixely - 250 + yo < 0 ||
+                        pixelx - 250 + xo >= image_width ||
+                        pixely - 250 + yo >= image_heigth)
+                    {
+                        color = RGB(0,0,0);
+                        OutImage.SetPixel(xo,yo,color);
+                    }
+                    else
+                    {
+                        color = Img.GetPixel(pixelx-250 + xo,pixely - 250 + yo);
+                        OutImage.SetPixel(xo,yo,color);
+                    }
+
+                }
+            }
+
+            //在中心画十字
+            for (int xa = 200; xa != 300; ++xa)
+            {
+                OutImage.SetPixel(xa,250,RGB(255,0,0));
+            }
+            for (int ya = 200; ya != 300; ++ya)
+            {
+                OutImage.SetPixel(250,ya,RGB(255,0,0));
+            }
+            OutImage.Save(COutImage);
+            OutImage.Destroy();
+            Img.Destroy();
+
+
+            ++iter; //更新iter
+        }
+
+    }
+
+
+}
+
 int main(int argc, char** argv) 
 {
     if (argc != 2)
@@ -282,6 +376,9 @@ int main(int argc, char** argv)
     std::string pmvs_txt_path = pmvs_path + "\\txt\\";
     //visualize工作目录
     std::string pmvs_visualize_path = pmvs_path + "\\visualize\\";
+    //result工作目录
+    std::string pmvs_result_path = pmvs_path + "\\result\\";
+    
 
     //读取相机参数
     std::map<int,MatrixXd> map_camera_parameter_Matrix;
@@ -302,8 +399,10 @@ int main(int argc, char** argv)
         pi = 0;
         ii = 0;
         std::cout << "\n1:查询相机P矩阵.\n"
-				  <<  "2:查询点世界坐标.\n"
+				  << "2:查询点世界坐标.\n"
 				  << "3:查询点point在所有图片的坐标.\n"
+                  << "4:打印point在所有图片的截图,并保存到result\\pointcheck里.\n"
+                  << "5:保存第N张图片上所有点坐标文件\n"
 				  << "0:退出.\n";
 		std::cin.clear();
         std::cin >> c;
@@ -335,6 +434,20 @@ int main(int argc, char** argv)
 				}
 				std::cin.sync();
 			}
+            else if (inputitem == 4)
+            {
+                std::cout << "\n输入点名称,(序号从0开始)\n";
+                std::cin >> pi;
+                std::cin.sync();
+                CutOutPointImage(pmvs_visualize_path,pmvs_result_path,point_images_coord,pi);
+            }
+            else if (inputitem == 5)
+            {
+                std::cout << "\n输入图片名称,(序号从0开始)\n";
+                std::cin >> pi;
+                std::cin.sync();
+                SaveImageOrederCoord(pmvs_result_path,image_points_coord,pi);
+            }
 			else if(inputitem == 0)
 			{
 				exit(0);							   
