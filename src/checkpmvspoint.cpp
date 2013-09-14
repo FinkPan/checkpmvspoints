@@ -52,8 +52,7 @@ void ReadCameraParameter(std::string filepath,std::map<int,MatrixXd> &map_camera
         inputfile.open(filename,std::ios_base::in);
         if (!inputfile) //读取文件失败
         {
-            ++image_index;
-            std::cout << "无法打开文件: " << filename << std::endl;
+            std::cout << "读取 " << image_index << " 个相机参数文件." << std::endl;
             break;
         }
         inputfile >> str_CONTOUR;
@@ -137,8 +136,8 @@ void ReadOption_Patch(const std::string &filepath,
                 imageXYcoord /=  imageXYcoord(2);
 
                 pc.imageID = good_image_index; //获取图片名
-                ic.x = pc.x       = imageXYcoord(0,0);
-                ic.y = pc.y       = imageXYcoord(1,0);
+                pc.x       = imageXYcoord(0,0);
+                pc.y       = imageXYcoord(1,0);
 
                 //image_points_coord.insert(std::make_pair(good_image_index,ic));
                 point_images_coord.insert(std::make_pair(point_index,pc));
@@ -148,6 +147,7 @@ void ReadOption_Patch(const std::string &filepath,
             inputfile.ignore(1024,'\n'); //忽略worse_image_index行直到回车.
             inputfile.ignore(1024,'\n'); //忽略空回车.
         }
+		std::cout << "读取了 " << point_index << " 个点坐标.\n";
     }
     else
         std::cout << "无法读取: " << filename << std::endl;
@@ -228,7 +228,11 @@ void GetCameraParameter(int CameraID,const std::map<int,MatrixXd> &P)
 {
     std::map<int,MatrixXd>::const_iterator iter = P.find(CameraID);
     if(iter != P.end())
+	{
+		std::cout.unsetf(std::ios::floatfield);
+		std::cout.precision(14);
         std::cout << iter->second;
+	}
     else
         std::cout << "没有该相机P矩阵\n";
 
@@ -243,8 +247,11 @@ void GetPoint3Dcoord(int Pointname,const std::vector<imageorder_coord> &vecpoint
     }
     else
 	{
-			std::cout << vecpoint3Dcoord[Pointname].pointID << "\n"
-                      << vecpoint3Dcoord[Pointname].x       << "\n";
+		std::cout.unsetf(std::ios::floatfield);
+		std::cout.precision(14);
+		std::cout << vecpoint3Dcoord[Pointname].pointID << " "
+                  << vecpoint3Dcoord[Pointname].x       << " "
+				  << vecpoint3Dcoord[Pointname].y       << "\n";
 	}
 
 }
@@ -259,7 +266,11 @@ void GetPointImageCoord(const int pointname,
 		std::cout << "point: " << pointname << "\n";
 		for (int i = 0; i != cntimage; ++i)
 		{
-			std::cout << "image: " << iter->second.imageID << " coord: " << iter->second.x << " " << iter->second.y << "\n";
+			std::cout << "image: " << iter->second.imageID ;
+			std::cout.unsetf(std::ios::floatfield);
+			std::cout.precision(14);
+		    std::cout << " coord: " << iter->second.x << " " << iter->second.y << "\n";
+			++iter;  //递增iter
 		}
 	}
 	else
@@ -415,7 +426,7 @@ int main(int argc, char** argv)
 				std::cout << "\n输入相机P矩阵文件号eg: 要查00000003.txt的,输入3\n";
 				std::cin >> pi;
 				std::cin.sync();
-				GetCameraParameter(66,map_camera_parameter_Matrix);
+				GetCameraParameter(pi,map_camera_parameter_Matrix);
 			}
 			else if (inputitem == 2)
 			{
