@@ -181,7 +181,8 @@ void cmpvsp::GetPointWorldCoord(size_t PointID)
 Point cmpvsp::GetPointImageCoord(size_t PointID)
 {
 	point_info point;
-	Point pointvisibleimages;
+	Point Mypoint;
+    size_t cntpointvisibleimages = 0;
 	if (point_.size() != 0 || PointID < point_.size())
 	{
 		Point::const_iterator iter = point_.begin();
@@ -189,11 +190,12 @@ Point cmpvsp::GetPointImageCoord(size_t PointID)
 		{
 			if (iter -> pointID == PointID)
 			{
+                cntpointvisibleimages = iter->pointvisibleimages;
 				std::cout << "point: P" << iter->pointID << std::endl;
-				for(size_t i = 0; i != iter->pointvisibleimages; ++i)
+				for(size_t i = 0; i != cntpointvisibleimages; ++i)
 				{
 					point = *iter;
-					pointvisibleimages.push_back(point);
+					Mypoint.push_back(point);
 					std::cout << "image: I" << iter->imageID << "\n";
 					std::cout.unsetf(std::ios::floatfield);
 					std::cout.precision(14);
@@ -201,7 +203,7 @@ Point cmpvsp::GetPointImageCoord(size_t PointID)
 							  << iter->py << "\n";
 					++iter;
 				}
-				return pointvisibleimages;
+				return Mypoint;
 			}
 			else
 				iter += iter->pointvisibleimages;	
