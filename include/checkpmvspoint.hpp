@@ -8,6 +8,7 @@
 #include <map>
 #include <iterator>
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 #include <cctype>	  //isdigit()	
 #include <cstdlib>    //atoi()
 #include <limits>
@@ -48,6 +49,8 @@ public:
 	void GetPointWorldCoord(size_t PointID);
 	Point GetPointImageCoord(size_t PointID);
 	void CutOutPointVisibleImage(size_t PointID);
+    void TransformPixelPointToWorldPoint(size_t px,size_t py, size_t CameraID);
+    void TransformWorldPointToPixelPoint(double wx,double wy, double wz,size_t CameraID);
 
 protected:
 private:

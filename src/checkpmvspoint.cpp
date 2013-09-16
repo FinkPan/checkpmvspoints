@@ -212,9 +212,9 @@ Point cmpvsp::GetPointImageCoord(size_t PointID)
 	else
 	{
 		std::cout << "没有该点信息.\n";
-		return pointvisibleimages;
+		return Mypoint;
 	}
-	return pointvisibleimages;
+	return Mypoint;
 }
 
 void cmpvsp::CutOutPointVisibleImage(size_t PointID)
@@ -301,4 +301,49 @@ void cmpvsp::CutOutPointVisibleImage(size_t PointID)
         OutImage.Destroy();
         Img.Destroy();
     }
+}
+
+void cmpvsp::TransformPixelPointToWorldPoint(size_t px,size_t py,  size_t CameraID)
+{
+    if (cameraMatrix_.size() != 0 || CameraID < cameraMatrix_.size())
+    {
+       // Vector4d point_world_coord;
+        Vector3d point_pixel_coord;
+        MatrixXd P(3,4);
+
+        point_pixel_coord(0,0) = px;
+        point_pixel_coord(1,0) = py;
+        point_pixel_coord(2,0) = 1;
+        P = cameraMatrix_.at(CameraID);
+        std::cout << "Here is the matrix A:\n" << P << std::endl;
+        std::cout << "Here is the vector b:\n" << point_pixel_coord << std::endl;
+
+        VectorXd x = P.colPivHouseholderQr().solve(point_pixel_coord);
+
+        x /= x(2);
+        std::cout << "The solution is:\n" << x << std::endl;
+        //point_world_coord = point_pixel_coord\P;
+       // point_pixel_coord = P * point_world_coord
+
+    }
+
+}
+
+void cmpvsp::TransformWorldPointToPixelPoint(double wx,double wy, double wz,size_t CameraID)
+{
+    if (cameraMatrix_.size() != 0 || CameraID < cameraMatrix_.size())
+    {
+        Vector4d point_world_coord;
+        MatrixXd P(3,4);
+        point_world_coord(0,0) = wx;
+        point_world_coord(1,0) = wy;
+        point_world_coord(2,0) = wz;
+        point_world_coord(3,0) = 1;
+        P = cameraMatrix_.at(CameraID);
+
+        VectorXd x = P * point_world_coord;
+        x /= x(2);
+        std::cout << "The solution is:\n" << x << std::endl;
+    }
+
 }
